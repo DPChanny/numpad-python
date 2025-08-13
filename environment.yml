@@ -1,0 +1,10 @@
+name: numpad
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - tk
+  - pip
+  - pip:
+      - pyinstaller>=5.0
