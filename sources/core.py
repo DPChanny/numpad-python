@@ -6,9 +6,9 @@ separated from the UI layer for better maintainability.
 """
 
 import time
-import random
-from typing import List, Dict, Tuple, Optional
+from typing import List, Tuple
 from dataclasses import dataclass
+from characters import CharacterManager
 
 
 @dataclass
@@ -67,14 +67,14 @@ class TypingTestEngine:
         self.current_pos = 0
 
     def generate_initial_sequence(self) -> None:
-        """Generate initial sequence of random digits."""
-        self.target_string = [
-            self.get_random_digit() for _ in range(self.window_size * 2 + 1)
-        ]
+        """Generate initial sequence of random characters."""
+        self.target_string = CharacterManager.generate_sequence(
+            self.window_size * 2 + 1
+        )
 
-    def get_random_digit(self) -> str:
-        """Generate a single random digit from 0-9."""
-        return str(random.randint(0, 9))
+    def get_random_character(self) -> str:
+        """Generate a single random character."""
+        return CharacterManager.get_random_character()
 
     def process_input(self, user_char: str) -> bool:
         """
@@ -89,8 +89,8 @@ class TypingTestEngine:
         if not self.is_active:
             return False
 
-        # Only process digit input
-        if not (len(user_char) == 1 and user_char.isdigit()):
+        # Only process valid numpad input
+        if not CharacterManager.is_valid_input(user_char):
             return False
 
         # Store input and update stats
@@ -116,7 +116,7 @@ class TypingTestEngine:
         self.target_string = self.target_string[1:]
         self.typed_chars = self.typed_chars[1:]
         self.current_pos -= 1
-        self.target_string.append(self.get_random_digit())
+        self.target_string.append(self.get_random_character())
 
     def get_display_data(self) -> Tuple[List[Tuple[str, str]], TypingStats]:
         """

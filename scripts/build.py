@@ -37,7 +37,7 @@ def get_build_command():
     system = platform.system()
     sources_dir = get_sources_dir()
     assets_dir = get_assets_dir()
-    builds_dir = get_builds_dir()
+    project_root = get_project_root()
 
     base_cmd = [
         "pyinstaller",
@@ -46,11 +46,11 @@ def get_build_command():
         "--name",
         "NumPad",
         "--distpath",
-        str(builds_dir),
+        str(project_root / "dist"),
         "--workpath",
-        str(builds_dir / "temp"),
+        str(project_root / "build"),
         "--specpath",
-        str(builds_dir),
+        str(project_root),
     ]
 
     # Add all source files as additional data
@@ -84,25 +84,31 @@ def get_build_command():
 
 def clean_build_artifacts():
     """Clean up build artifacts from previous builds."""
-    builds_dir = get_builds_dir()
-
-    # Clean builds directory but keep the directory itself
-    if builds_dir.exists():
-        for item in builds_dir.iterdir():
-            if item.is_dir():
-                shutil.rmtree(item)
-                print(f"Removed {item}")
+    project_root = get_project_root()
+    
+    # Clean standard PyInstaller directories
+    artifacts = ["build", "dist", "__pycache__"]
+    
+    for artifact_name in artifacts:
+        artifact_path = project_root / artifact_name
+        if artifact_path.exists():
+            if artifact_path.is_dir():
+                shutil.rmtree(artifact_path)
+                print(f"Removed {artifact_path}")
             else:
-                item.unlink()
-                print(f"Removed {item}")
+                artifact_path.unlink()
+                print(f"Removed {artifact_path}")
 
-    # Clean __pycache__ directories
-    for pycache in get_project_root().rglob("__pycache__"):
+    # Remove .spec files from project root
+    for spec_file in project_root.glob("*.spec"):
+        spec_file.unlink()
+        print(f"Removed {spec_file}")
+
+    # Clean __pycache__ directories recursively
+    for pycache in project_root.rglob("__pycache__"):
         if pycache.is_dir():
             shutil.rmtree(pycache)
             print(f"Removed {pycache}")
-
-
 def check_dependencies():
     """Check if required dependencies are installed."""
     try:
@@ -129,20 +135,17 @@ def check_project_structure():
     """Check if the project structure is correct."""
     project_root = get_project_root()
     sources_dir = get_sources_dir()
-    builds_dir = get_builds_dir()
     assets_dir = get_assets_dir()
 
     print("Checking project structure...")
-
+    
     # Check required directories
-    required_dirs = [sources_dir, builds_dir, assets_dir]
+    required_dirs = [sources_dir, assets_dir]
     for directory in required_dirs:
         if not directory.exists():
             print(f"✗ Missing directory: {directory}")
             return False
-        print(f"✓ Found directory: {directory}")
-
-    # Check required source files
+        print(f"✓ Found directory: {directory}")    # Check required source files
     required_files = [
         "numpad.py",
         "core.py",
