@@ -27,17 +27,23 @@ class NumPadApp:
         self.root = tk.Tk()
         self.engine = TypingTestEngine()
         self.digit_labels = []  # Store individual digit labels for coloring
+        self.last_char_data = (
+            []
+        )  # Cache last character data to avoid unnecessary updates
         self.setup_ui()
         self.setup_bindings()
         self.engine.start_new_test()  # Auto-start
+        self.initialize_digit_labels()
         self.update_display()
 
     def setup_ui(self):
         """Set up the user interface."""
         self.root.title("NumPad")
-        self.root.geometry("600x400")
+        self.root.geometry("500x500")
         self.root.resizable(True, True)
-        self.root.minsize(400, 300)
+        self.root.minsize(
+            500, 500
+        )  # Increased minimum size to prevent clipping
 
         # Configure style based on OS
         self.setup_os_specific_styling()
@@ -66,8 +72,8 @@ class NumPadApp:
         self.display_frame.columnconfigure(0, weight=1)
         self.display_frame.rowconfigure(0, weight=1)
 
-        # Container for digit labels
-        self.digits_container = ttk.Frame(self.display_frame)
+        # Container for digit labels with fixed background to prevent flicker
+        self.digits_container = tk.Frame(self.display_frame, bg="white")
         self.digits_container.grid(row=0, column=0)
 
         # Stats frame
@@ -157,7 +163,8 @@ class NumPadApp:
         """Handle key press events."""
         if event.char.isdigit():
             self.engine.process_input(event.char)
-            self.update_display()
+            # Only update display immediately for user input
+            self.update_display_immediate()
         elif event.char.lower() == "r":
             self.reset_test()
 
@@ -166,40 +173,48 @@ class NumPadApp:
         self.engine.reset_stats()
         self.engine.generate_initial_sequence()
         self.engine.start_new_test()  # Auto-restart
-        self.update_display()
+        self.initialize_digit_labels()  # Reinitialize labels
+        self.update_display_immediate()
         self.root.focus_set()
 
-    def create_digit_labels(self, char_data):
-        """Create individual digit labels for color highlighting."""
+    def initialize_digit_labels(self):
+        """Initialize digit labels once at startup."""
         # Clear existing labels
         for label in self.digit_labels:
             label.destroy()
         self.digit_labels.clear()
 
-        # Create new labels for each digit
+        # Get initial character data
+        char_data, _ = self.engine.get_display_data()
+
+        # Create labels for the initial sequence with proper highlighting
         for i, (char, status) in enumerate(char_data):
-            # Define colors based on status
+            # Define colors based on status (same logic as update_digit_labels)
             if status == "current":
                 bg_color = "#FFD700"  # Gold
                 fg_color = "#000000"  # Black
                 font_weight = "bold"
+                font_size = 56  # Larger font for current digit
             elif status == "correct":
                 bg_color = "#90EE90"  # Light Green
                 fg_color = "#000000"  # Black
                 font_weight = "normal"
+                font_size = 48
             elif status == "incorrect":
                 bg_color = "#FFB6C1"  # Light Pink
                 fg_color = "#000000"  # Black
                 font_weight = "normal"
+                font_size = 48
             else:  # future
                 bg_color = "#F0F0F0"  # Light Gray
                 fg_color = "#000000"  # Black
                 font_weight = "normal"
+                font_size = 48
 
             label = tk.Label(
                 self.digits_container,
                 text=char,
-                font=("Courier New", 48, font_weight),
+                font=("Courier New", font_size, font_weight),
                 bg=bg_color,
                 fg=fg_color,
                 width=2,
@@ -209,12 +224,96 @@ class NumPadApp:
             label.grid(row=0, column=i, padx=2, pady=10)
             self.digit_labels.append(label)
 
-    def update_display(self):
-        """Update the display with current test data."""
+        self.last_char_data = list(char_data)
+
+    def update_digit_labels(self, char_data):
+        """Update digit labels efficiently - only change what's necessary."""
+        # Batch updates to minimize redraws
+        self.root.update_idletasks()  # Process pending events first
+
+        # Adjust number of labels if needed
+        while len(self.digit_labels) < len(char_data):
+            # Add new label
+            label = tk.Label(
+                self.digits_container,
+                text="",
+                font=("Courier New", 48, "normal"),
+                bg="#F0F0F0",
+                fg="#000000",
+                width=2,
+                relief="solid",
+                borderwidth=1,
+            )
+            label.grid(row=0, column=len(self.digit_labels), padx=2, pady=10)
+            self.digit_labels.append(label)
+
+        # Batch all label updates
+        updates_needed = []
+        for i, (char, status) in enumerate(char_data):
+            if i >= len(self.digit_labels):
+                break
+
+            # Check if this label needs updating
+            need_update = i >= len(self.last_char_data) or self.last_char_data[
+                i
+            ] != (char, status)
+
+            if need_update:
+                # Define colors based on status
+                if status == "current":
+                    bg_color = "#FFD700"  # Gold
+                    fg_color = "#000000"  # Black
+                    font_weight = "bold"
+                    font_size = 56  # Larger font for current digit
+                elif status == "correct":
+                    bg_color = "#90EE90"  # Light Green
+                    fg_color = "#000000"  # Black
+                    font_weight = "normal"
+                    font_size = 48
+                elif status == "incorrect":
+                    bg_color = "#FFB6C1"  # Light Pink
+                    fg_color = "#000000"  # Black
+                    font_weight = "normal"
+                    font_size = 48
+                else:  # future
+                    bg_color = "#F0F0F0"  # Light Gray
+                    fg_color = "#000000"  # Black
+                    font_weight = "normal"
+                    font_size = 48
+
+                updates_needed.append(
+                    (i, char, font_weight, font_size, bg_color, fg_color)
+                )
+
+        # Apply all updates at once
+        for (
+            i,
+            char,
+            font_weight,
+            font_size,
+            bg_color,
+            fg_color,
+        ) in updates_needed:
+            self.digit_labels[i].config(
+                text=char,
+                font=("Courier New", font_size, font_weight),
+                bg=bg_color,
+                fg=fg_color,
+            )
+
+        # Hide extra labels if sequence got shorter
+        for i in range(len(char_data), len(self.digit_labels)):
+            self.digit_labels[i].grid_remove()
+
+        # Cache current data
+        self.last_char_data = list(char_data)
+
+    def update_display_immediate(self):
+        """Update display immediately for user input."""
         char_data, stats = self.engine.get_display_data()
 
-        # Update digit labels with highlighting
-        self.create_digit_labels(char_data)
+        # Update digit labels efficiently
+        self.update_digit_labels(char_data)
 
         # Update statistics
         self.accuracy_var.set(f"{stats.accuracy_percentage:.2f}%")
@@ -222,9 +321,21 @@ class NumPadApp:
         self.chars_var.set(f"{stats.correct_chars} / {stats.total_chars_typed}")
         self.time_var.set(f"{stats.elapsed_time:.2f}s")
 
-        # Schedule next update if test is active
+    def update_display(self):
+        """Update the display with current test data (periodic update)."""
         if self.engine.is_active:
-            self.root.after(100, self.update_display)
+            char_data, stats = self.engine.get_display_data()
+
+            # Only update statistics periodically (not digits, to avoid flicker)
+            self.accuracy_var.set(f"{stats.accuracy_percentage:.2f}%")
+            self.npm_var.set(f"{stats.npm:.2f}")
+            self.chars_var.set(
+                f"{stats.correct_chars} / {stats.total_chars_typed}"
+            )
+            self.time_var.set(f"{stats.elapsed_time:.2f}s")
+
+            # Schedule next update with longer interval
+            self.root.after(500, self.update_display)
 
     def run(self):
         """Start the application main loop."""
