@@ -50,7 +50,7 @@ python scripts/build.py
 if [ $? -eq 0 ]; then
     echo ""
     echo "Build completed successfully!"
-    echo "The executable can be found in the 'builds' directory."
+    echo "The executable can be found in the 'dist' directory."
     echo ""
 else
     echo ""

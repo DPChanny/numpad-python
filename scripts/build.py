@@ -22,11 +22,6 @@ def get_sources_dir():
     return get_project_root() / "sources"
 
 
-def get_builds_dir():
-    """Get the builds directory."""
-    return get_project_root() / "builds"
-
-
 def get_assets_dir():
     """Get the assets directory."""
     return get_project_root() / "assets"
@@ -85,10 +80,10 @@ def get_build_command():
 def clean_build_artifacts():
     """Clean up build artifacts from previous builds."""
     project_root = get_project_root()
-    
+
     # Clean standard PyInstaller directories
     artifacts = ["build", "dist", "__pycache__"]
-    
+
     for artifact_name in artifacts:
         artifact_path = project_root / artifact_name
         if artifact_path.exists():
@@ -109,6 +104,8 @@ def clean_build_artifacts():
         if pycache.is_dir():
             shutil.rmtree(pycache)
             print(f"Removed {pycache}")
+
+
 def check_dependencies():
     """Check if required dependencies are installed."""
     try:
@@ -138,14 +135,14 @@ def check_project_structure():
     assets_dir = get_assets_dir()
 
     print("Checking project structure...")
-    
+
     # Check required directories
     required_dirs = [sources_dir, assets_dir]
     for directory in required_dirs:
         if not directory.exists():
             print(f"✗ Missing directory: {directory}")
             return False
-        print(f"✓ Found directory: {directory}")    # Check required source files
+        print(f"✓ Found directory: {directory}")  # Check required source files
     required_files = [
         "numpad.py",
         "core.py",
@@ -198,18 +195,19 @@ def build_executable():
         print("\n✓ Build completed successfully!")
 
         # Show output location
-        builds_dir = get_builds_dir()
-        exe_files = list(builds_dir.glob("NumPad*"))
+        project_root = get_project_root()
+        dist_dir = project_root / "dist"
+        exe_files = list(dist_dir.glob("NumPad*"))
         if exe_files:
             exe_file = exe_files[0]
             file_size = exe_file.stat().st_size / (1024 * 1024)  # MB
             print(f"✓ Executable created: {exe_file}")
             print(f"✓ File size: {file_size:.1f} MB")
 
-        # Clean up temporary files
-        temp_dir = builds_dir / "temp"
-        if temp_dir.exists():
-            shutil.rmtree(temp_dir)
+        # Clean up temporary build directory
+        build_dir = project_root / "build"
+        if build_dir.exists():
+            shutil.rmtree(build_dir)
             print("✓ Cleaned up temporary files")
 
         return True
@@ -280,7 +278,7 @@ def main():
 
     if success:
         print(f"\n🎉 Build completed successfully!")
-        print(f"📁 The executable can be found in the 'builds' directory.")
+        print(f"📁 The executable can be found in the 'dist' directory.")
         print(f"🚀 You can now distribute the NumPad application!")
     else:
         print(f"\n💥 Build failed.")

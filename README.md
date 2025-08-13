@@ -32,7 +32,7 @@ NumPad/
 ├── assets/            # Resources and assets
 │   ├── icon.ico      # Application icon (Windows)
 │   └── version.txt   # Version information (Windows)
-├── builds/            # Output directory for executables
+├── dist/              # Output directory for executables (created during build)
 ├── environment.yml    # Conda environment specification
 └── README.md         # This file
 ```
@@ -47,8 +47,8 @@ NumPad/
 ### Windows
 
 1. Double-click `scripts/build_windows.bat`
-2. The executable will be created in the `builds/` folder
-3. Run `builds/NumPad.exe`
+2. The executable will be created in the `dist/` folder
+3. Run `dist/NumPad.exe`
 
 ### Linux/macOS
 
@@ -60,7 +60,7 @@ chmod +x scripts/build_unix.sh
 ./scripts/build_unix.sh
 
 # Run executable
-./builds/NumPad
+./dist/NumPad
 ```
 
 ### Development Setup

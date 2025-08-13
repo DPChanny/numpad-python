@@ -18,5 +18,5 @@ echo Deactivating environment...
 call conda deactivate
 
 echo.
-echo Build completed! Check the builds\ directory for the executable.
+echo Build completed! Check the dist\ directory for the executable.
 pause
